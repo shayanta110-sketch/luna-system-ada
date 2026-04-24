@@ -82,18 +82,20 @@ class LLMProxy:
     def chat(
         self,
         messages: List[Dict[str, str]],
-        model: str = "deepseek",   # "deepseek" یا "gemini"
+        model: str = "deepseek",
         temperature: float = 0.7,
         force_json: bool = False
     ) -> str:
-        """
-        ارسال یک مکالمه به مدل انتخاب شده و برگرداندن پاسخ متنی
-        - model: 'deepseek' یا 'gemini'
-        - force_json: فقط برای deepseek معنی دارد (output را مجبور به JSON می‌کند)
-        """
         if model == "gemini":
+            # اگر force_json فعال است، یک پیام سیستمی اضافه کن
+            if force_json:
+                # بررسی کن که اولین پیام سیستمی نباشد
+                if not messages or messages[0].get("role") != "system":
+                    messages.insert(0, {"role": "system", "content": "You must output ONLY valid JSON. No extra text."})
+                else:
+                    messages[0]["content"] += " You must output ONLY valid JSON. No extra text."
             return self._call_gemini(messages)
-        else:  # deepseek
+        else:
             return self._call_deepseek(messages, temperature, force_json)
 
 
