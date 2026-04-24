@@ -86,33 +86,29 @@ class AutonomousAgent:
             print("[Agent] No operations to perform.")
             return
 
-        # ادامه کد برای پردازش operations
         for op in operations:
             filepath = op.get("filepath")
             content = op.get("content")
-
             if not filepath or content is None:
                 print(f"[Agent] Skipping invalid operation: {op}")
-                continue   # ← این continue داخل حلقه و داخل if است
+                continue
 
-            # اگر به اینجا رسیدیم، یعنی عملیات معتبر است
             print(f"[Agent] Applying change to {filepath} ...")
+            success, msg = self.fm.apply_changes(filepath, content, run_runtime_check=True)
 
-success, msg = self.fm.apply_changes(filepath, content, run_runtime_check=True)
-
-if success:
-    print(f"[Agent] SUCCESS: {msg}")
-else:
-    print(f"[Agent] ERROR: {msg}")
-    fixed = self._heal_code(content, msg, filepath)
-    if fixed:
-        retry_success, retry_msg = self.fm.apply_changes(filepath, fixed, run_runtime_check=True)
-        if retry_success:
-            print(f"[Agent] Self-healing succeeded: {retry_msg}")
-        else:
-            print(f"[Agent] Self-healing failed: {retry_msg}")
-    else:
-        print(f"[Agent] Could not heal the code. Skipping {filepath}")
+            if success:
+                print(f"[Agent] SUCCESS: {msg}")
+            else:
+                print(f"[Agent] ERROR: {msg}")
+                fixed = self._heal_code(content, msg, filepath)
+                if fixed:
+                    retry_success, retry_msg = self.fm.apply_changes(filepath, fixed, run_runtime_check=True)
+                    if retry_success:
+                        print(f"[Agent] Self-healing succeeded: {retry_msg}")
+                    else:
+                        print(f"[Agent] Self-healing failed: {retry_msg}")
+                else:
+                    print(f"[Agent] Could not heal the code. Skipping {filepath}")
 
 
     def _heal_code(self, bad_code: str, error_msg: str, filepath: str) -> Optional[str]:
