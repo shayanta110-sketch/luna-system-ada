@@ -1,0 +1,7 @@
+# requirements.txt
+# وابستگی‌های اصلی
+openai>=1.30.0
+google-generativeai>=0.7.0
+
+# ابزارهای جانبی (در صورت نیاز)
+# توجه: subprocess و ast در پایتون داخلی هستند
