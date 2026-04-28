@@ -1,120 +1,22 @@
-"""
-llm_proxy.py
-لایه انتزاعی برای ارتباط با مدل‌های Gemini و DeepSeek (از طریق API رسمی)
-با قابلیت تلاش مجدد و پشتیبانی از پروکسی سفارشی
-"""
-
 import os
-import time
-import json
-from typing import List, Dict, Any, Optional
-from openai import OpenAI
-import google.generativeai as genai
+from google import genai
 
-
-class LLMProxy:
+def get_ai_response(prompt):
     """
-    یک کلاینت واحد برای فراخوانی مدل‌های مختلف
+    ارتباط با مدل جمینای با استفاده از آخرین نسخه SDK (v2.0)
     """
-    def __init__(
-        self,
-        gemini_api_key: str,
-        deepseek_api_key: str,
-        proxy_base_url: Optional[str] = None,   # اگر می‌خواهید از پروکسی واسط استفاده کنید
-        max_retries: int = 3,
-        retry_delay: float = 1.0
-    ):
-        self.gemini_key = gemini_api_key
-        self.deepseek_key = deepseek_api_key
-        self.max_retries = max_retries
-        self.retry_delay = retry_delay
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY is not set in environment variables.")
 
-        # تنظیم Gemini
-        genai.configure(api_key=gemini_api_key)
-        self.gemini_model = genai.GenerativeModel("gemini-1.5-pro")
-
-        # تنظیم DeepSeek (سازگار با OpenAI)
-        base_url = proxy_base_url if proxy_base_url else "https://api.deepseek.com"
-        self.deepseek_client = OpenAI(
-            api_key=deepseek_api_key,
-            base_url=base_url
-        )
-
-    def _call_deepseek(self, messages: List[Dict[str, str]], temperature: float = 0.7, force_json: bool = False) -> str:
-        """فراخوانی DeepSeek با مدیریت خطا و تلاش مجدد"""
-        for attempt in range(self.max_retries):
-            try:
-                params = {
-                    "model": "deepseek-chat",
-                    "messages": messages,
-                    "temperature": temperature,
-                }
-                if force_json:
-                    params["response_format"] = {"type": "json_object"}
-
-                response = self.deepseek_client.chat.completions.create(**params)
-                return response.choices[0].message.content
-
-            except Exception as e:
-                if attempt == self.max_retries - 1:
-                    raise e
-                wait = self.retry_delay * (2 ** attempt)
-                time.sleep(wait)
-
-    def _call_gemini(self, messages: List[Dict[str, str]]) -> str:
-        """تبدیل messages به یک پرامپت ساده برای Gemini (چون Gemini فرمت OpenAI را مستقیماً نمی‌فهمد)"""
-        prompt_parts = []
-        for msg in messages:
-            role = msg.get("role", "user").upper()
-            content = msg.get("content", "")
-            prompt_parts.append(f"{role}: {content}")
-        full_prompt = "\n".join(prompt_parts)
-
-        for attempt in range(self.max_retries):
-            try:
-                response = self.gemini_model.generate_content(full_prompt)
-                return response.text
-            except Exception as e:
-                if attempt == self.max_retries - 1:
-                    raise e
-                time.sleep(self.retry_delay * (2 ** attempt))
-
-    def chat(
-        self,
-        messages: List[Dict[str, str]],
-        model: str = "deepseek",
-        temperature: float = 0.7,
-        force_json: bool = False
-    ) -> str:
-        if model == "gemini":
-            # اگر force_json فعال است، یک پیام سیستمی اضافه کن
-            if force_json:
-                # بررسی کن که اولین پیام سیستمی نباشد
-                if not messages or messages[0].get("role") != "system":
-                    messages.insert(0, {"role": "system", "content": "You must output ONLY valid JSON. No extra text."})
-                else:
-                    messages[0]["content"] += " You must output ONLY valid JSON. No extra text."
-            return self._call_gemini(messages)
-        else:
-            return self._call_deepseek(messages, temperature, force_json)
-
-
-# نمونه استفاده (برای تست در محیط محلی)
-if __name__ == "__main__":
-    # توجه: این بخش فقط برای تست است و در GitHub Actions از طریق secrets تأمین می‌شود
-    proxy = LLMProxy(
-        gemini_api_key=os.getenv("GEMINI_API_KEY", ""),
-        deepseek_api_key=os.getenv("DEEPSEEK_API_KEY", ""),
-        proxy_base_url=None   # در صورت داشتن پروکسی، آدرس آن را وارد کنید
-    )
-
-    test_messages = [
-        {"role": "system", "content": "You are a helpful assistant. Reply in valid JSON."},
-        {"role": "user", "content": "Say hello in JSON format: {\"greeting\": \"...\"}"}
-    ]
-
+    client = genai.Client(api_key=api_key)
+    
     try:
-        response = proxy.chat(test_messages, model="deepseek", force_json=True)
-        print("DeepSeek response:", response)
+        # استفاده از مدل gemini-1.5-pro که پایدارترین نسخه است
+        response = client.models.generate_content(
+            model='gemini-1.5-pro',
+            contents=prompt
+        )
+        return response.text
     except Exception as e:
-        print("Error:", e)
+        return f"Error in AI Call: {str(e)}"
