@@ -11,7 +11,12 @@ from typing import Optional
 from llm_proxy import LLMProxy
 from file_manager import FileManager
 from prompts import get_system_prompt
+# در خطوط ابتدایی فایل main_agent.py مطمئن شوید این ساختار رعایت شده:
+from llm_proxy import LLMProxy
 
+# و در زمان استفاده:
+agent = LLMProxy()
+response = agent.ask("دستور مورد نظر شما")
 
 class AutonomousAgent:
     def __init__(self):
