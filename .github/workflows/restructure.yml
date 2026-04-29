@@ -1,36 +1,47 @@
-name: Restructure Repository
+# .github/workflows/restructure.yml
+name: Restructure Repository to ada-nexus Monorepo
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:
   restructure:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Move folders and restructure
-      run: |
-        mkdir -p ada-nexus
-        
-        # جابه‌جایی پوشه‌های اصلی (فرض بر این است که هر کدام از قبل زیرپوشه همنام خود را دارند)
-        mv nexus-router nexus-vision nexus-translate nexus-memory ada-nexus/
-        
-        # جابه‌جایی ada-tools (اگر وجود دارد)
-        if [ -d "ada-tools" ]; then
-          mv ada-tools ada-nexus/
-        fi
-        
-        # در صورت نیاز، می‌توانید زیرپوشه‌ها را خودتان بسازید و فایل‌ها را جابه‌جا کنید
-        # اما اگر ساختار فعلی شما تخت است، باید دستورات زیر را اجرا کنید:
-        
-        # مثال: اگر داخل nexus-router فایل‌های تخت دارید و می‌خواهید زیرپوشه nexus_router بسازید:
-        # mkdir -p ada-nexus/nexus-router/nexus_router
-        # mv ada-nexus/nexus-router/*.py ada-nexus/nexus-router/nexus_router/ 2>/dev/null || true
-        
-    - name: Commit and push changes
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git add .
-        git commit -m "chore: restructure project into ada-nexus monorepo" || echo "No changes to commit"
-        git push
+      # Step 1: Checkout the repository's current code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Create the target directory
+      - name: Create ada-nexus folder
+        run: mkdir -p ada-nexus
+
+      # Step 3: Move folders if they exist (using || true to ignore 'file not found' errors)
+      - name: Move existing folders into ada-nexus
+        run: |
+          # This line will move all specified folders if they exist, and do nothing if they don't.
+          # The '|| true' ensures the command never fails, even if a folder is missing.
+          mv nexus-router nexus-vision nexus-translate nexus-memory ada-nexus/ 2>/dev/null || true
+
+      # Step 4: Configure Git user for the commit
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # Step 5: Add all changes (including renames/moves) to Git
+      - name: Stage changes
+        run: git add .
+
+      # Step 6: Commit the changes. If nothing has changed, the commit step is skipped.
+      - name: Commit changes
+        run: |
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: restructure project into ada-nexus monorepo"
+          fi
+
+      # Step 7: Push the new commit back to the repository
+      - name: Push changes
+        run: git push
