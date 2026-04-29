@@ -6,7 +6,7 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 import logging
 
@@ -146,7 +146,6 @@ class BaseSpecialist(ABC):
             context اصلاح شده (می‌تواند شامل پیام خطای سفارشی باشد)
         """
         logger.error(f"Specialist '{self.name}' caught error: {error}")
-        # پیاده‌سازی پیش‌فرض: خطا را در context ذخیره می‌کند
         context.set("error", str(error))
         context.set("error_specialist", self.name)
         return context
@@ -209,7 +208,7 @@ class SpecialistChain:
     این کلاس مسئول مدیریت و هماهنگی چندین متخصص به صورت زنجیره‌ای است.
     """
     
-    def __init__(self, specialists: Optional[list[BaseSpecialist]] = None):
+    def __init__(self, specialists: Optional[List['BaseSpecialist']] = None):
         """
         مقداردهی اولیه زنجیره متخصصان.
         
@@ -258,7 +257,7 @@ class SpecialistChain:
         """دریافت متخصص بر اساس نام"""
         return self._specialists.get(name)
     
-    def get_all_specialists(self) -> list[BaseSpecialist]:
+    def get_all_specialists(self) -> List[BaseSpecialist]:
         """دریافت لیست تمام متخصصان (مرتب شده بر اساس اولویت)"""
         return sorted(self._specialists.values(), key=lambda s: s.priority)
     
@@ -290,7 +289,11 @@ class SpecialistChain:
                     
             except Exception as e:
                 logger.exception(f"Error in before hook of {specialist.name}: {e}")
+                # فراخوانی on_error متخصص برای مدیریت خطا
                 context = specialist.on_error(context, e)
+                # در صورت خطا، ادامه نمی‌دهیم (می‌توان تنظیم کرد که قطع شود یا نه)
+                context.set("error_in_specialist", specialist.name)
+                break
         
         return context
     
