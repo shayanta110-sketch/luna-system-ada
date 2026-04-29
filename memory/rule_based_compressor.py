@@ -1,10 +1,7 @@
-"""Rule-based memory compressor inspired by Steno notation.
-
-This module provides compression techniques to reduce memory size and token usage
-by converting verbose text into compact, structured representations.
-
-Supports two output formats:
-- Human-readable: Compressed but still legible (e.g., "usr logged in")
+"""Rule-based memory compressor inspired by Steno notation. This module provides
+compression techniques to reduce memory size and token usage by converting
+verbose text into compact, structured representations. Supports two output
+formats: - Human-readable: Compressed but still legible (e.g., "usr logged in")
 - Machine-compact: Extremely dense, optimized for token efficiency
 """
 
@@ -17,12 +14,12 @@ from enum import Enum
 class CompressionFormat(Enum):
     """Output format for compressed data."""
     HUMAN_READABLE = "human"      # Short but legible
-    MACHINE_COMPACT = "compact"    # Token-minimized representation
+    MACHINE_COMPACT = "compact"   # Token-minimized representation
 
 
 class RuleBasedCompressor:
     """Rule-based text compressor using Steno-like abbreviation rules."""
-    
+
     # Common word substitutions (human-readable)
     HUMAN_RULES = {
         r'\bthe\b': '',
@@ -46,7 +43,7 @@ class RuleBasedCompressor:
         r'\bplease\b': 'pls',
         r'\bthanks\b': 'thx',
     }
-    
+
     # Ultra-compact rules for machine format
     MACHINE_RULES = {
         r'\bthe\b': 'T',
@@ -67,7 +64,7 @@ class RuleBasedCompressor:
         r'\bnot\b': '!',
         r'\byou\b': 'U',
         r'\bare\b': 'R',
-        r'\bis\b': '=' ,
+        r'\bis\b': '=',
         r'\bwas\b': 'WS',
         r'\bwere\b': 'WR',
         r'\bhas\b': 'HZ',
@@ -79,23 +76,23 @@ class RuleBasedCompressor:
         r'\bthen\b': '>',
         r'\belse\b': '<',
     }
-    
+
     # Punctuation and whitespace normalization
     WHITESPACE_RULES = [
-        (r'\s+', ' '),           # Collapse spaces
-        (r'^\s+|\s+$', ''),      # Trim edges
-        (r'\s*([.,!?;:])\s*', r'\1 '),  # Fix punctuation spacing
+        (r'\s+', ' '),                     # Collapse spaces
+        (r'^\s+|\s+$', ''),               # Trim edges
+        (r'\s*([.,!?;:])\s*', r'\1 '),    # Fix punctuation spacing
     ]
-    
-    def __init__(self, format: CompressionFormat = CompressionFormat.HUMAN_READABLE):
+
+    def __init__(self, compression_format: CompressionFormat = CompressionFormat.HUMAN_READABLE):
         """Initialize compressor with specified output format.
         
         Args:
-            format: HUMAN_READABLE or MACHINE_COMPACT
+            compression_format: HUMAN_READABLE or MACHINE_COMPACT
         """
-        self.format = format
+        self.format = compression_format
         self._compiled_rules = self._compile_rules()
-    
+
     def _compile_rules(self) -> List[Tuple[re.Pattern, str]]:
         """Compile regex rules for active format."""
         rules_dict = self.HUMAN_RULES if self.format == CompressionFormat.HUMAN_READABLE else self.MACHINE_RULES
@@ -103,7 +100,7 @@ class RuleBasedCompressor:
         for pattern, replacement in rules_dict.items():
             compiled.append((re.compile(pattern, re.IGNORECASE), replacement))
         return compiled
-    
+
     def compress(self, text: str) -> str:
         """Compress input text using rule-based transformations.
         
@@ -115,23 +112,23 @@ class RuleBasedCompressor:
         """
         if not text or not isinstance(text, str):
             return ""
-        
+
         result = text
-        
+
         # Apply substitution rules
         for pattern, replacement in self._compiled_rules:
             result = pattern.sub(replacement, result)
-        
+
         # Apply whitespace cleanup
         for pattern, replacement in self.WHITESPACE_RULES:
             result = re.sub(pattern, replacement, result)
-        
+
         # Machine-compact: remove vowels from remaining words (extreme)
         if self.format == CompressionFormat.MACHINE_COMPACT:
             result = self._strip_vowels(result)
-        
+
         return result.strip()
-    
+
     def _strip_vowels(self, text: str) -> str:
         """Remove vowels from words (keeping short words intact)."""
         words = text.split()
@@ -144,7 +141,7 @@ class RuleBasedCompressor:
                 vowel_free = re.sub(r'[aeiouAEIOU]', '', word)
                 processed.append(vowel_free if vowel_free else word[0])
         return ' '.join(processed)
-    
+
     def compress_with_metadata(self, text: str) -> Dict[str, Any]:
         """Compress and return metadata including size savings.
         
@@ -157,7 +154,6 @@ class RuleBasedCompressor:
         original_size = len(text.encode('utf-8'))
         compressed = self.compress(text)
         compressed_size = len(compressed.encode('utf-8'))
-        
         return {
             'original': text,
             'compressed': compressed,
@@ -167,7 +163,7 @@ class RuleBasedCompressor:
             'compression_ratio': compressed_size / original_size if original_size > 0 else 1.0,
             'format': self.format.value
         }
-    
+
     def batch_compress(self, texts: List[str]) -> List[Dict[str, Any]]:
         """Compress multiple texts.
         
@@ -184,48 +180,46 @@ class StenoMemoryEncoder:
     """High-level encoder for storing memory items in compressed format."""
     
     def __init__(self, default_format: CompressionFormat = CompressionFormat.HUMAN_READABLE):
-        """Initialize encoder with default compression format.
-        
-        Args:
-            default_format: Compression format to use
-        """
+        """Initialize encoder with default compression format."""
         self.default_format = default_format
         self.compressors = {
             CompressionFormat.HUMAN_READABLE: RuleBasedCompressor(CompressionFormat.HUMAN_READABLE),
             CompressionFormat.MACHINE_COMPACT: RuleBasedCompressor(CompressionFormat.MACHINE_COMPACT)
         }
-    
-    def encode(self, memory_item: Dict[str, Any], 
-               format: Optional[CompressionFormat] = None) -> Dict[str, Any]:
+
+    def encode(
+        self,
+        memory_item: Dict[str, Any],
+        compression_format: Optional[CompressionFormat] = None
+    ) -> Dict[str, Any]:
         """Encode a memory item with compression.
         
         Args:
             memory_item: Dict with 'content' field and optional metadata
-            format: Override default format
+            compression_format: Override default format
             
         Returns:
             Compressed memory item with '_compressed' flag
         """
         if 'content' not in memory_item:
             return memory_item
-        
-        fmt = format or self.default_format
+        fmt = compression_format or self.default_format
         compressor = self.compressors[fmt]
-        
         compressed_content = compressor.compress(memory_item['content'])
-        
         result = memory_item.copy()
         result['content'] = compressed_content
         result['_compressed'] = True
         result['_compression_format'] = fmt.value
-        
         return result
-    
-    def encode_batch(self, memory_items: List[Dict[str, Any]],
-                     format: Optional[CompressionFormat] = None) -> List[Dict[str, Any]]:
+
+    def encode_batch(
+        self,
+        memory_items: List[Dict[str, Any]],
+        compression_format: Optional[CompressionFormat] = None
+    ) -> List[Dict[str, Any]]:
         """Encode multiple memory items."""
-        return [self.encode(item, format) for item in memory_items]
-    
+        return [self.encode(item, compression_format) for item in memory_items]
+
     def estimate_savings(self, memory_items: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Estimate compression savings without modifying items.
         
@@ -238,17 +232,14 @@ class StenoMemoryEncoder:
         total_original = 0
         total_compressed_human = 0
         total_compressed_machine = 0
-        
         for item in memory_items:
             content = item.get('content', '')
             total_original += len(content.encode('utf-8'))
-            
             human_compressed = self.compressors[CompressionFormat.HUMAN_READABLE].compress(content)
             total_compressed_human += len(human_compressed.encode('utf-8'))
-            
             machine_compressed = self.compressors[CompressionFormat.MACHINE_COMPACT].compress(content)
             total_compressed_machine += len(machine_compressed.encode('utf-8'))
-        
+
         return {
             'total_original_bytes': total_original,
             'human_readable': {
