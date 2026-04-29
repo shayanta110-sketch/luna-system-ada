@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # Core Ada Nexus Service
+  ada-nexus:
+    build:
+      context: ./ada-nexus
+      dockerfile: Dockerfile
+    container_name: ada-nexus
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - ADA_GUARDIAN_URL=http://ada-guardian:8001
+      - ADA_VISION_URL=http://ada-vision:8002
+    depends_on:
+      - ada-guardian
+      - ada-vision
+    networks:
+      - ada-network
+    volumes:
+      - ./ada-nexus/data:/app/data
+
+  # Ada Guardian - Security & Monitoring Module
+  ada-guardian:
+    build:
+      context: ./ada-guardian
+      dockerfile: Dockerfile
+    container_name: ada-guardian
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - ENVIRONMENT=production
+    networks:
+      - ada-network
+    volumes:
+      - ./ada-guardian/logs:/app/logs
+
+  # Ada Vision - Computer Vision & Perception Module
+  ada-vision:
+    build:
+      context: ./ada-vision
+      dockerfile: Dockerfile
+    container_name: ada-vision
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      - ENVIRONMENT=production
+    networks:
+      - ada-network
+    volumes:
+      - ./ada-vision/models:/app/models
+      - ./ada-vision/data:/app/data
+
+networks:
+  ada-network:
+    driver: bridge
+
+volumes:
+  ada-nexus_data:
+  ada-guardian_logs:
+  ada-vision_models:
+  ada-vision_data:

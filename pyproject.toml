@@ -1,0 +1,75 @@
+[project]
+name = "ada-v1"
+version = "3.0.0"
+description = ""
+authors = [
+    {name = "luna system",email = "luna@airsi.de"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.1.0",
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "gunicorn>=23.0.0",
+    "httpx>=0.26.0",
+    "requests>=2.32.5",
+    # Configuration management
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.2.1",
+    # RAG / vector store
+    "chromadb>=0.4.0",
+    # Offsite backups to Backblaze R2 (S3-compatible)
+    "boto3>=1.35.0",
+    # Graph algorithms
+    "networkx>=3.0",
+    # Sentence embeddings
+    "sentence-transformers>=2.2.0",
+    # Numerical operations
+    "numpy>=1.24.0",
+    # OCR and file upload
+    "python-multipart>=0.0.9",
+    "pytesseract>=0.3.10",
+    "pillow>=10.0.0",
+    "tiktoken>=0.12.0",
+    "hypothesis>=6.148.7",
+    # Phase 9: Information theory & machine learning
+    "scikit-learn>=1.3.0",
+    "scipy>=1.11.0",
+    # LLM bindings for memory system
+    "llama-cpp-python>=0.2.0",
+    "requests>=2.32.5",
+    # Ada Log Intelligence (local package)
+    "ada-logs @ file:///${PROJECT_ROOT}/ada-logs",
+    # Local nexus packages
+    "nexus-router @ file:///${PROJECT_ROOT}/nexus-router",
+    "nexus-vision @ file:///${PROJECT_ROOT}/nexus-vision",
+    "nexus-translate @ file:///${PROJECT_ROOT}/nexus-translate",
+    "nexus-memory @ file:///${PROJECT_ROOT}/nexus-memory",
+]
+
+[project.optional-dependencies]
+docs = [
+    "sphinx>=8.0.0",
+    "sphinx-rtd-theme>=3.0.0",
+    "myst-parser>=4.0.0",  # Markdown support for CHANGELOG.md
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+graph = [
+    "networkx>=3.0",  # Graph algorithms for memory_graph.py (optional, pure Python fallback available)
+]
+
+[project.scripts]
+ada = "ada_main:cli"
+
+[tool.setuptools]
+packages = ["brain", "brain.specialists"]
+py-modules = ["ada_main"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

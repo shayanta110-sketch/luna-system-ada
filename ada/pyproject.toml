@@ -1,0 +1,3 @@
+[tool.poetry.dependencies]
+nexus-router = { path = "../nexus-router", develop = true }
+nexus-translate = { path = "../nexus-translate", develop = true }
